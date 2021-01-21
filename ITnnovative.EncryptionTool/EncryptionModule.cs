@@ -15,6 +15,7 @@ namespace ITnnovative.EncryptionTool.API
         private ReliableSerialPort _com;
 
         private int _baudRate = 115200;
+        private bool _streamingEncryption;
 
         /// <summary>
         /// Sets Baud Rate
@@ -55,6 +56,38 @@ namespace ITnnovative.EncryptionTool.API
             return this;
         }
 
+        /// <summary>
+        /// Begins stream encryption.
+        /// </summary>
+        /// <param name="onStreamDataReceived">Event will be invoked each time data is received. Events are invoked in same order data is sent.</param>
+        public EncryptionModule BeginStreamEncryption(Action<byte[]> onStreamDataReceived)
+        {
+            _streamingEncryption = true;
+            // Handler for data receiving
+            void Listener(object sender, DataReceivedArgs args)
+            {
+                onStreamDataReceived(args.Data);
+            }
+
+            // Register handler
+            _com.DataReceived += Listener;
+            
+            // Begin stream encryption
+            _com.Write(new[] {Commands.BEGIN_STREAM, Commands.DUMMY}, 0, 2);
+            return this;
+        }
+
+        /// <summary>
+        /// Send Stream data to module. It will not return encrypted data. It will be returned to predefined action inside BeginStreamEncryption.
+        /// </summary>
+        public EncryptionModule SendStreamData(byte[] data)
+        {
+            if (!_streamingEncryption)
+                throw new SystemException("You need to initialize stream encryption first. Call BeginStreamEncryption to do so.");
+            _com.Write(data, 0, data.Length);
+            return this;
+        }
+        
         /// <summary>
         /// Sets encryption module password
         /// </summary>
@@ -207,6 +240,33 @@ namespace ITnnovative.EncryptionTool.API
             {
                 arrayNew[q + 1] = array[q];
             }
+
+            // Write new array
+            _com.Write(arrayNew, 0, arrayNew.Length);
+        }
+        
+        /// <summary>
+        /// Load encryption data
+        /// </summary>
+        public void LoadEncryptionData(byte[] p, byte s, byte n)
+        {
+            // Check if size is correct
+            if(p.Length != 256)
+                throw new ArgumentException("P table length must be equal to 256 bytes!");
+            
+            // Build array incl. command
+            var arrayNew = new byte[259];
+            arrayNew[0] = Commands.LOAD_DATA;
+            for (var q = 0; q < p.Length; q++)
+            {
+                arrayNew[q + 1] = p[q];
+            }
+
+            // Add s at last place - 1
+            arrayNew[^2] = s;
+            
+            // Add n at last place
+            arrayNew[^1] = n;
 
             // Write new array
             _com.Write(arrayNew, 0, arrayNew.Length);

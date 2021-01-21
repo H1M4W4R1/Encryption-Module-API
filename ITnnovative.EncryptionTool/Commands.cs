@@ -3,6 +3,11 @@
     public static class Commands
     {
         /// <summary>
+        /// Begin stream command
+        /// </summary>
+        public const byte BEGIN_STREAM = 0x6;
+
+        /// <summary>
         /// Dumps serialization data
         /// </summary>
         public const byte DUMP_DATA = 0x50;
