@@ -7,6 +7,7 @@ Just create `EncryptionModule` class and use it's methods. Example:
 var sequence = "MyDataToEncrypt";
 
 var module = new EncryptionModule();
+module.Connect("/dev/ttyACM0"); // Connects to /dev/ttyACM0 port. On Windows you need to use COM<number>.
 module.SetPassword("test").InitializeCipher();
 var outData = module.EncryptSequence(sequence);
 
