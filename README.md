@@ -28,11 +28,12 @@ Example:
 To start new encryption (eg. you encrypt another file) you need to call `InitializeCipher()` again.
 
 ## Which commands does it support?
-It supports most of the EMO commands excluding 0x6 (stream encryption) that is mostly useless (it exists, but in most cases using sequence is better, because you do not lock device in encrypting state, unless you will have large overhead based on sending sequence lengths, so 0x6 is useful in really rare cases).
+It will try to support all available commands but sometimes there might be a slight delay between firmware and API, so be aware.
 
 Commands supported: 
 - `0x04` - set password
 - `0x05` - init encryption algorithm
+- `0x06` - encrypt in stream mode
 - `0x07` - encrypt sequence
 - `0x50` - dump encryption data
 - `0x51` - load encryption data
@@ -44,3 +45,8 @@ It will dump (in order): `P[]` - permutation table of VMPC, `s` - s-value of VMP
 
 ## How to load encryption data?
 That's harder. You need to call `module.LoadEncryptionData(byte[] array)` where array is equal to 258 bytes. First 256 bytes are `P[]` (permutation table) of VMPC algorithm, two next bytes are `s` and `n` values from VMPC algorithm. **ORDER MATTERS!**
+
+Other method is `module.LoadEncryptionData(byte[] P, byte s, byte n)`, which creates array by itself and sends it.
+
+## How to quit stream mode?
+You need to physically disconnect and reconnect device.
