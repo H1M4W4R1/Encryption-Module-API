@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO.Ports;
 
-namespace ITnnovative.EncryptionTool.API
+namespace ITnnovative.EncryptionTool.API.Tools
 {
     public class ReliableSerialPort : SerialPort
     {

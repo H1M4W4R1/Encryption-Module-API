@@ -3,6 +3,11 @@
     public static class Commands
     {
         /// <summary>
+        /// Get features of device as list
+        /// </summary>
+        public const byte GET_FEATURES = 0xF0;
+
+        /// <summary>
         /// Begin stream command
         /// </summary>
         public const byte BEGIN_STREAM = 0x6;

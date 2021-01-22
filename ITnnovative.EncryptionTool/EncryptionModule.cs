@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using ITnnovative.EncryptionTool.API.Tools;
 
 namespace ITnnovative.EncryptionTool.API
 {
@@ -18,6 +20,11 @@ namespace ITnnovative.EncryptionTool.API
         private bool _streamingEncryption;
 
         /// <summary>
+        /// Information about supported features, default: none (until downloaded)
+        /// </summary>
+        private byte[] _supportedFeatures = new byte[32];
+        
+        /// <summary>
         /// Sets Baud Rate
         /// </summary>
         /// <param name="rate"></param>
@@ -25,6 +32,71 @@ namespace ITnnovative.EncryptionTool.API
         {
             _baudRate = rate;
             return this;
+        }
+
+        /// <summary>
+        /// Check if command is supported
+        /// </summary>
+        public bool IsCommandSupported(byte commandCode)
+        {
+            // Calculate offsets for command bit
+            var offset = commandCode / 8;
+            var pos = commandCode % 8;
+
+            // Check if command is supported
+            return (_supportedFeatures[offset] & (128 >> pos)) > 0;
+        }
+
+        /// <summary>
+        /// Gets list of supported commands
+        /// </summary>
+        public List<byte> GetSupportedCommands()
+        {
+            // Create list to return
+            var list = new List<byte>();
+            for (byte cmd = 0; cmd < 256; cmd++)
+            {
+                // Check if commands is supported and add it
+                if (IsCommandSupported(cmd))
+                    list.Add(cmd);
+            }
+
+            // Return list of supported commands
+            return list;
+        }
+        
+        /// <summary>
+        /// Gets list of supported features
+        /// </summary>
+        public byte[] GetSupportedFeaturesBitData()
+        {
+           var arr = new byte[32];
+            
+            // Create listener
+            var cOffset = 0;
+
+            // Download listener
+            void Listener(object sender, DataReceivedArgs args)
+            {
+                var len = args.Data.Length;
+                for (var q = 0; q < len; q++)
+                {
+                    arr[q + cOffset] = args.Data[q];
+                }
+
+                cOffset += len;
+            }
+
+            _com.DataReceived += Listener;
+
+            _com.Write(new byte[] {Commands.GET_FEATURES, Commands.DUMMY}, 0, 2);
+                      
+            // Wait for features to be downloaded
+            while (cOffset < 32)
+            {
+            }
+
+            return arr;
         }
         
         /// <summary>
@@ -39,6 +111,9 @@ namespace ITnnovative.EncryptionTool.API
             _com.WriteBufferSize = 128;
             
             _com.Open();
+            
+            // Get supported features for this device
+            _supportedFeatures = GetSupportedFeaturesBitData();
             return this;
         }
 
@@ -62,6 +137,9 @@ namespace ITnnovative.EncryptionTool.API
         /// <param name="onStreamDataReceived">Event will be invoked each time data is received. Events are invoked in same order data is sent.</param>
         public EncryptionModule BeginStreamEncryption(Action<byte[]> onStreamDataReceived)
         {
+            if (!IsCommandSupported(Commands.BEGIN_STREAM))
+                throw new NotSupportedException("This command is not supported on this device.");
+            
             _streamingEncryption = true;
             // Handler for data receiving
             void Listener(object sender, DataReceivedArgs args)
@@ -95,6 +173,9 @@ namespace ITnnovative.EncryptionTool.API
         /// <exception cref="ArgumentException">Password phrase too long (over 255 bytes)</exception>
         public EncryptionModule SetPassword(params byte[] pwdBytes)
         {
+            if (!IsCommandSupported(Commands.SET_PASSWORD))
+                throw new NotSupportedException("This command is not supported on this device.");
+            
             if(pwdBytes.Length > 255)
                 throw new ArgumentException("Max password length is 255 bytes.");
 
@@ -127,6 +208,9 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public EncryptionModule InitializeCipher()
         {
+            if (!IsCommandSupported(Commands.INIT_ENCRYPTION))
+                throw new NotSupportedException("This command is not supported on this device.");
+            
             // Send command
             _com.Write(new []{Commands.INIT_ENCRYPTION, Commands.DUMMY}, 0, 2);
             return this;
@@ -139,6 +223,9 @@ namespace ITnnovative.EncryptionTool.API
         /// <param name="seq">Data sequence, max 255 characters</param>
         public byte[] EncryptSequence(params byte[] seq)
         {
+            if (!IsCommandSupported(Commands.ENCRYPT_SEQUENCE))
+                throw new NotSupportedException("This command is not supported on this device.");
+            
             var arr = new byte[seq.Length];
 
             // Check seq. length
@@ -165,10 +252,7 @@ namespace ITnnovative.EncryptionTool.API
                 cOffset += len;
             };
             _com.DataReceived += listener;
-       
-            var sw = new Stopwatch();
-            sw.Start();
-            
+
             // Send data
             _com.Write(seq, 0, seq.Length);
             
@@ -178,10 +262,6 @@ namespace ITnnovative.EncryptionTool.API
             {
             }
             
-            sw.Stop();
-            Console.WriteLine("OK: " + sw.ElapsedMilliseconds + "ms");
-            Console.WriteLine("Speed: " + 1000*((double)seq.Length / sw.ElapsedMilliseconds) + " B/s");
-
             // Remove listener
             _com.DataReceived -= listener;
 
@@ -194,6 +274,9 @@ namespace ITnnovative.EncryptionTool.API
         /// <returns></returns>
         public byte[] DumpEncryptionData()
         {
+            if (!IsCommandSupported(Commands.DUMP_DATA))
+                throw new NotSupportedException("This command is not supported on this device.");
+            
             var arr = new byte[258];
             
             // Create listener for downloading data
@@ -229,6 +312,9 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public void LoadEncryptionData(byte[] array)
         {
+            if (!IsCommandSupported(Commands.LOAD_DATA))
+                throw new NotSupportedException("This command is not supported on this device.");
+            
             // Check if size is correct
             if(array.Length != 258)
                 throw new ArgumentException("Array length must equal 258 bytes.");
@@ -250,6 +336,9 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public void LoadEncryptionData(byte[] p, byte s, byte n)
         {
+            if (!IsCommandSupported(Commands.LOAD_DATA))
+                throw new NotSupportedException("This command is not supported on this device.");
+            
             // Check if size is correct
             if(p.Length != 256)
                 throw new ArgumentException("P table length must be equal to 256 bytes!");
@@ -271,15 +360,17 @@ namespace ITnnovative.EncryptionTool.API
             // Write new array
             _com.Write(arrayNew, 0, arrayNew.Length);
         }
-        
+
         /// <summary>    
         /// Encrypts text sequence
         /// </summary>
-        /// <param name="text"></param>
-        /// <returns></returns>
-        public byte[] EncryptSequence(string text)
+        public byte[] EncryptSequence(string text, Encoding encoding = null)
         {
-            return EncryptSequence(Encoding.ASCII.GetBytes(text));
+            // If encoding is not set, then use ASCII
+            if(encoding == null)
+                encoding = Encoding.ASCII;
+            
+            return EncryptSequence(encoding.GetBytes(text));
         }
 
     }

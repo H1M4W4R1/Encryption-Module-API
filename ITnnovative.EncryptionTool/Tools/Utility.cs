@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace ITnnovative.EncryptionTool.API
+namespace ITnnovative.EncryptionTool.API.Tools
 {
     public static class Utility
     {
