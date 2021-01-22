@@ -38,6 +38,7 @@ Commands supported:
 - `0x07` - encrypt sequence
 - `0x50` - dump encryption data
 - `0x51` - load encryption data
+- `0xF0` - list features (supported commands)
 
 ## How about dumping encryption data?
 Yes, you can dump VMPC algorithm values (after initialization). It is recommended way to encrypt large files on your PC's CPU instead on EMO. To do this you need to call `module.DumpEncryptionData()` method.
@@ -51,3 +52,13 @@ Other method is `module.LoadEncryptionData(byte[] P, byte s, byte n)`, which cre
 
 ## How to quit stream mode?
 You need to physically disconnect and reconnect device.
+
+## What if I have older version of firmware that does not support specific command?
+That's not a problem. EMO firmware includes 0xF0 command that lists supported features. If feature is not supported it will inform you that... it's not supported and you can't use it (it will throw NotSupportedException).
+
+You can also check if command is supported by calling
+```cs
+module.IsCommandSupported(<commmand>);
+// example:
+module.IsCommandSupported(Commands.ENCRYPT_SEQUENCE);
+```
