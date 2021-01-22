@@ -96,6 +96,7 @@ namespace ITnnovative.EncryptionTool.API
             {
             }
 
+            _com.DataReceived -= Listener;
             return arr;
         }
         
