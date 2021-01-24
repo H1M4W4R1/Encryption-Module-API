@@ -5,6 +5,7 @@ using System.IO.Ports;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using ITnnovative.EncryptionTool.API.Tools;
 
 namespace ITnnovative.EncryptionTool.API
@@ -19,6 +20,7 @@ namespace ITnnovative.EncryptionTool.API
         private int _baudRate = 115200;
         private bool _streamingEncryption;
         private bool _connected;
+        private const int HANDSHAKE_TIMEOUT = 5000; // ms
 
         /// <summary>
         /// Information about supported features, default: none (until downloaded)
@@ -92,11 +94,13 @@ namespace ITnnovative.EncryptionTool.API
             _com.DataReceived += Listener;
 
             _com.Write(new byte[] {Commands.GET_FEATURES, Commands.DUMMY}, 0, 2);
-                      
-            // Wait for features to be downloaded
-            while (cOffset < 32)
+
+            // Wait for handshake or device not recognized
+            if (!SpinWait.SpinUntil(() => cOffset >= 32, HANDSHAKE_TIMEOUT))
             {
+                throw new HardwareException("Device has not been recognized. Are you using correct port?");
             }
+            
 
             _com.DataReceived -= Listener;
             return arr;
