@@ -18,6 +18,7 @@ namespace ITnnovative.EncryptionTool.API
 
         private int _baudRate = 115200;
         private bool _streamingEncryption;
+        private bool _connected;
 
         /// <summary>
         /// Information about supported features, default: none (until downloaded)
@@ -25,14 +26,9 @@ namespace ITnnovative.EncryptionTool.API
         private byte[] _supportedFeatures = new byte[32];
         
         /// <summary>
-        /// Sets Baud Rate
+        /// Block constructor for device
         /// </summary>
-        /// <param name="rate"></param>
-        public EncryptionModule SetBaudRate(int rate)
-        {
-            _baudRate = rate;
-            return this;
-        }
+        private EncryptionModule(){}
 
         /// <summary>
         /// Check if command is supported
@@ -52,6 +48,9 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public List<byte> GetSupportedCommands()
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             // Create list to return
             var list = new List<byte>();
             for (byte cmd = 0; cmd < 256; cmd++)
@@ -70,7 +69,10 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public byte[] GetSupportedFeaturesBitData()
         {
-           var arr = new byte[32];
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
+            var arr = new byte[32];
             
             // Create listener
             var cOffset = 0;
@@ -99,20 +101,39 @@ namespace ITnnovative.EncryptionTool.API
             _com.DataReceived -= Listener;
             return arr;
         }
+
+        /// <summary>
+        /// Connects to device on COM port
+        /// </summary>
+        public static EncryptionModule Connect(string comName)
+        {
+            var emo = new EncryptionModule();
+            return emo.ConnectInternal(comName);
+        }
         
         /// <summary>
         /// Connects to device on COM port
         /// </summary>
-        /// <param name="comName"></param>
-        public EncryptionModule Connect(string comName)
+        private EncryptionModule ConnectInternal(string comName)
         {
-            Disconnect();
+            if(_connected)
+                Disconnect();
             _com = new ReliableSerialPort(comName, _baudRate, Parity.None, 8, StopBits.One);
             _com.ReadBufferSize = 128;
             _com.WriteBufferSize = 128;
-            
-            _com.Open();
-            
+
+            try
+            {
+                _com.Open();
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                throw new HardwareException("Device not found at provided port. Are you using proper value?");
+            }
+
+            // Connect to device
+            _connected = true;
+
             // Get supported features for this device
             _supportedFeatures = GetSupportedFeaturesBitData();
             return this;
@@ -123,11 +144,16 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public EncryptionModule Disconnect()
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             if (_com != null)
             {
                 if(_com.IsOpen)
                     _com.Close();
             }
+
+            _connected = false;
 
             return this;
         }
@@ -138,6 +164,9 @@ namespace ITnnovative.EncryptionTool.API
         /// <param name="onStreamDataReceived">Event will be invoked each time data is received. Events are invoked in same order data is sent.</param>
         public EncryptionModule BeginStreamEncryption(Action<byte[]> onStreamDataReceived)
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             if (!IsCommandSupported(Commands.BEGIN_STREAM))
                 throw new NotSupportedException("This command is not supported on this device.");
             
@@ -161,6 +190,9 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public EncryptionModule SendStreamData(byte[] data)
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             if (!_streamingEncryption)
                 throw new SystemException("You need to initialize stream encryption first. Call BeginStreamEncryption to do so.");
             _com.Write(data, 0, data.Length);
@@ -174,6 +206,9 @@ namespace ITnnovative.EncryptionTool.API
         /// <exception cref="ArgumentException">Password phrase too long (over 255 bytes)</exception>
         public EncryptionModule SetPassword(params byte[] pwdBytes)
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             if (!IsCommandSupported(Commands.SET_PASSWORD))
                 throw new NotSupportedException("This command is not supported on this device.");
             
@@ -198,6 +233,9 @@ namespace ITnnovative.EncryptionTool.API
         /// <exception cref="ArgumentException">Password phrase too long (over 64 bytes)</exception>
         public EncryptionModule SetPassword(string password)
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             // Get bytes from password
             var pwdBytes = Encoding.ASCII.GetBytes(password);
             SetPassword(pwdBytes);
@@ -209,6 +247,9 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public EncryptionModule InitializeCipher()
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             if (!IsCommandSupported(Commands.INIT_ENCRYPTION))
                 throw new NotSupportedException("This command is not supported on this device.");
             
@@ -224,6 +265,9 @@ namespace ITnnovative.EncryptionTool.API
         /// <param name="seq">Data sequence, max 255 characters</param>
         public byte[] EncryptSequence(params byte[] seq)
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             if (!IsCommandSupported(Commands.ENCRYPT_SEQUENCE))
                 throw new NotSupportedException("This command is not supported on this device.");
             
@@ -275,6 +319,9 @@ namespace ITnnovative.EncryptionTool.API
         /// <returns></returns>
         public byte[] DumpEncryptionData()
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             if (!IsCommandSupported(Commands.DUMP_DATA))
                 throw new NotSupportedException("This command is not supported on this device.");
             
@@ -313,6 +360,9 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public void LoadEncryptionData(byte[] array)
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             if (!IsCommandSupported(Commands.LOAD_DATA))
                 throw new NotSupportedException("This command is not supported on this device.");
             
@@ -337,6 +387,9 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public void LoadEncryptionData(byte[] p, byte s, byte n)
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             if (!IsCommandSupported(Commands.LOAD_DATA))
                 throw new NotSupportedException("This command is not supported on this device.");
             
@@ -367,6 +420,9 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         public byte[] EncryptSequence(string text, Encoding encoding = null)
         {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
             // If encoding is not set, then use ASCII
             if(encoding == null)
                 encoding = Encoding.ASCII;

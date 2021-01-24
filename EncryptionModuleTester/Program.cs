@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using ITnnovative.EncryptionTool.API;
+using ITnnovative.EncryptionTool.API.Tools;
 
 namespace EncryptionModuleTester
 {
@@ -11,12 +12,28 @@ namespace EncryptionModuleTester
         static void Main(string[] args)
         {
    
-            var module = new EncryptionModule();
-            module.Connect("/dev/ttyACM1");
+  
+            // Connect to device at specific port
+            var module = EncryptionModule.Connect("/dev/ttyACM0");
 
+            // Set password for VMPC
+            module.SetPassword("test");
 
+            // Initialize VMPC
+            module.InitializeCipher();
+
+            // Encrypt sequence
+            var encrypted = module.EncryptSequence("test");
+
+            Console.WriteLine(encrypted.GetDataString());
             
-            Console.WriteLine(module.IsCommandSupported(Commands.ENCRYPT_SEQUENCE));
+            // Reinitialize cipher
+            module.InitializeCipher();
+            
+            // Decrypt sequence
+            var decrypted = module.EncryptSequence(encrypted);
+            
+            Console.WriteLine(decrypted.GetDataString());
         }
     }
 }
