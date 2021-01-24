@@ -1,5 +1,5 @@
 ## What is this API?
-This is an API for Encryption Module (see my other repositories), which handles device functions using C# SerialPort API. It's written in .NET Core.
+This is an API for [Encryption Module](https://github.com/H1M4W4R1/Encryption-Module) (see my other repositories), which handles device functions using C# SerialPort API. It's written in .NET Core.
 
 ## How to use it?
 Just create `EncryptionModule` class and use it's methods. Example:
