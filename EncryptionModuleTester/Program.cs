@@ -11,10 +11,10 @@ namespace EncryptionModuleTester
     {
         static void Main(string[] args)
         {
-   
-  
+
+
             // Connect to device at specific port
-            var module = EncryptionModule.Connect("/dev/ttyACM0");
+            var module = EncryptionModule.Connect("COM3");
 
             // Set password for VMPC
             module.SetPassword("test");
@@ -26,14 +26,16 @@ namespace EncryptionModuleTester
             var encrypted = module.EncryptSequence("test");
 
             Console.WriteLine(encrypted.GetDataString());
-            
+
             // Reinitialize cipher
             module.InitializeCipher();
-            
+
             // Decrypt sequence
             var decrypted = module.EncryptSequence(encrypted);
-            
+
             Console.WriteLine(decrypted.GetDataString());
+
+       
         }
     }
 }

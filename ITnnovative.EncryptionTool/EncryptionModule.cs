@@ -17,7 +17,7 @@ namespace ITnnovative.EncryptionTool.API
         /// </summary>
         private ReliableSerialPort _com;
 
-        private int _baudRate = 115200;
+        private int _baudRate = 9000000;
         private bool _streamingEncryption;
         private bool _connected;
         private const int HANDSHAKE_TIMEOUT = 5000; // ms
@@ -94,13 +94,14 @@ namespace ITnnovative.EncryptionTool.API
             _com.DataReceived += Listener;
 
             _com.Write(new byte[] {Commands.GET_FEATURES, Commands.DUMMY}, 0, 2);
-
+            
             // Wait for handshake or device not recognized
             if (!SpinWait.SpinUntil(() => cOffset >= 32, HANDSHAKE_TIMEOUT))
             {
+                
                 throw new HardwareException("Device has not been recognized. Are you using correct port?");
             }
-            
+          
 
             _com.DataReceived -= Listener;
             return arr;
@@ -122,6 +123,7 @@ namespace ITnnovative.EncryptionTool.API
         {
             if(_connected)
                 Disconnect();
+            
             _com = new ReliableSerialPort(comName, _baudRate, Parity.None, 8, StopBits.One);
             _com.ReadBufferSize = 128;
             _com.WriteBufferSize = 128;
@@ -293,12 +295,14 @@ namespace ITnnovative.EncryptionTool.API
             var cOffset = 0;
             EventHandler<DataReceivedArgs> listener = (sender, args) =>
             {
-                var len = args.Data.Length;
-                for (var q = 0; q < len; q++)
-                {
-                    arr[q + cOffset] = args.Data[q];
-                }
-                cOffset += len;
+              
+                    var len = args.Data.Length;
+                    for (var q = 0; q < len; q++)
+                    {
+                        arr[cOffset] = args.Data[q];
+                        cOffset++;
+                    }
+              
             };
             _com.DataReceived += listener;
 
