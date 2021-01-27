@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Threading;
 using ITnnovative.EncryptionTool.API;
 using ITnnovative.EncryptionTool.API.Tools;
@@ -41,6 +42,17 @@ namespace EncryptionModuleTester
             // Stream chunk size
             module.SetStreamChunkSize(4);
             Console.WriteLine($"StreamChunkSize: {module.GetStreamChunkSize()}");
+
+            // Fast USB mode
+            module.SetFastUSBMode(true);
+            Console.WriteLine($"FastUSBMode: {module.GetFastUSBMode()}");
+
+            //module.BeginStreamEncryption(data => { /**/ });
+            /*while (true)
+            {
+                module.SendStreamData(Encoding.ASCII.GetBytes("test"));
+               // Thread.Sleep(50);
+            }*/
         }
     }
 }

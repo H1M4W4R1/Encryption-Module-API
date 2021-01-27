@@ -67,6 +67,68 @@ namespace ITnnovative.EncryptionTool.API
         }
 
         /// <summary>
+        /// Checks if device is in Fast USB Mode.
+        /// </summary>
+        public bool GetFastUSBMode()
+        {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!"); 
+            
+            if(!IsCommandSupported(Commands.GET_CONFIG_VALUE))
+                throw new NotSupportedException("This command is not supported on this device.");
+
+            var data = (byte) 0x0;
+            var cOffset = 0;
+            
+            // Download listener
+            void Listener(object sender, DataReceivedArgs args)
+            {
+                var len = args.Data.Length;
+                for (var q = 0; q < len; q++)
+                {
+                    data = args.Data[0];
+                    cOffset++;
+                }
+            }
+
+            _com.DataReceived += Listener;
+            
+            _com.Write(
+                new byte[] {Commands.GET_CONFIG_VALUE, 
+                    ConfigIdentifiers.CFG_FAST_USB_MODE, 
+                    Commands.DUMMY}, 0,
+                3);
+            
+            while (cOffset < 1)
+            {
+                // Do nothing, wait for data
+            }
+      
+            _com.DataReceived -= Listener;
+
+            return data > 0;
+        }
+
+        public EncryptionModule SetFastUSBMode(bool newState)
+        {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!"); 
+            
+            if(!IsCommandSupported(Commands.SET_CONFIG_VALUE))
+                throw new NotSupportedException("This command is not supported on this device.");
+
+            // Create byte data
+            var newStateB = (byte) (newState ? 0x1 : 0x0);
+            
+            // Send data to Encryption Module
+            _com.Write(
+                new byte[] {Commands.SET_CONFIG_VALUE, ConfigIdentifiers.CFG_FAST_USB_MODE, newStateB}, 0,
+                3);
+            
+            return this;
+        }
+        
+        /// <summary>
         /// Get stream chunk size
         /// </summary>
         public ushort GetStreamChunkSize()
