@@ -85,10 +85,9 @@ namespace ITnnovative.EncryptionTool.API
                 var len = args.Data.Length;
                 for (var q = 0; q < len; q++)
                 {
-                    arr[q + cOffset] = args.Data[q];
+                    arr[cOffset] = args.Data[q];
+                    cOffset++;
                 }
-
-                cOffset += len;
             }
 
             _com.DataReceived += Listener;
@@ -287,9 +286,6 @@ namespace ITnnovative.EncryptionTool.API
 
             // Get bytes for len (2-byte integer)
             var amount = BitConverter.GetBytes((ushort) seq.Length);
-            
-            // Write command
-            _com.Write(new byte[]{Commands.ENCRYPT_SEQUENCE, amount[^1], amount[0]}, 0, 3);
 
             // Create listener
             var cOffset = 0;
@@ -306,8 +302,16 @@ namespace ITnnovative.EncryptionTool.API
             };
             _com.DataReceived += listener;
 
+            // Build new list for array sending
+            var narr = new List<byte>() {Commands.ENCRYPT_SEQUENCE, amount[^1], amount[0]};
+            narr.AddRange(seq);
+            
+            // Write command
+            _com.Write(narr.ToArray(), 0, narr.Count);
+
+            
             // Send data
-            _com.Write(seq, 0, seq.Length);
+            //_com.Write(seq, 0, seq.Length);
             
             // Wait for sequence to be received into buffer and read entire sequence at once to make it faster
             // It forces us to allocate around 1MB of RAM...
