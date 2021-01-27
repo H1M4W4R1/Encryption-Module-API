@@ -35,7 +35,12 @@ namespace EncryptionModuleTester
 
             Console.WriteLine(decrypted.GetDataString());
 
-       
+            // Config examples
+            Console.WriteLine("=== Config ===");
+            
+            // Stream chunk size
+            module.SetStreamChunkSize(4);
+            Console.WriteLine($"StreamChunkSize: {module.GetStreamChunkSize()}");
         }
     }
 }

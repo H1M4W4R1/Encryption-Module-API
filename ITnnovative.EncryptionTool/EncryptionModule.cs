@@ -65,6 +65,71 @@ namespace ITnnovative.EncryptionTool.API
             // Return list of supported commands
             return list;
         }
+
+        /// <summary>
+        /// Get stream chunk size
+        /// </summary>
+        public ushort GetStreamChunkSize()
+        {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!"); 
+            
+            if(!IsCommandSupported(Commands.GET_CONFIG_VALUE))
+                throw new NotSupportedException("This command is not supported on this device.");
+            
+            var arr = new byte[2];
+            var cOffset = 0;
+            
+            // Download listener
+            void Listener(object sender, DataReceivedArgs args)
+            {
+                var len = args.Data.Length;
+                for (var q = 0; q < len; q++)
+                {
+                    arr[cOffset] = args.Data[q];
+                    cOffset++;
+                }
+            }
+
+            _com.DataReceived += Listener;
+
+            // Send request
+            _com.Write(
+                new byte[] {Commands.GET_CONFIG_VALUE, ConfigIdentifiers.CFG_STREAM_CHUNK_SIZE, Commands.DUMMY}, 0,
+                3);
+
+            while (cOffset < 2)
+            {
+                // Do nothing, wait for data
+            }
+            
+            _com.DataReceived -= Listener;
+
+            // Convert back to ushort
+            return BitConverter.ToUInt16(new byte[]{arr[^1], arr[0]});
+        }
+        
+        /// <summary>
+        /// Set stream chunk size to new value
+        /// </summary>
+        public EncryptionModule SetStreamChunkSize(ushort streamChunkSize)
+        {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!"); 
+            
+            if(!IsCommandSupported(Commands.SET_CONFIG_VALUE))
+                throw new NotSupportedException("This command is not supported on this device.");
+
+            // Get value as byte array
+            var bytes = BitConverter.GetBytes(streamChunkSize);
+         
+            // Send data to Encryption Module
+            _com.Write(
+                new byte[] {Commands.SET_CONFIG_VALUE, ConfigIdentifiers.CFG_STREAM_CHUNK_SIZE, bytes[^1], bytes[0]}, 0,
+                4);
+            
+            return this;
+        }
         
         /// <summary>
         /// Gets list of supported features

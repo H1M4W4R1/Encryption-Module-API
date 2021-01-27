@@ -42,5 +42,15 @@
         /// </summary>
         public const byte ENCRYPT_SEQUENCE = 0x7;
 
+        /// <summary>
+        /// Command set cfg value
+        /// </summary>
+        public const byte SET_CONFIG_VALUE = 0xF2;
+
+        /// <summary>
+        /// Command get config value
+        /// </summary>
+        public const byte GET_CONFIG_VALUE = 0XF1;
+
     }
 }
