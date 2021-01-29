@@ -344,9 +344,9 @@ namespace ITnnovative.EncryptionTool.API
             var arr = new byte[seq.Length];
 
             // Check seq. length
-            if (seq.Length > 16384)
+            if (seq.Length > 8192)
             {
-                throw new ArgumentException($"Max sequence length is 16384 characters.");
+                throw new ArgumentException($"Max sequence length is 8192 bytes.");
             }
 
             // Get bytes for len (2-byte integer)
