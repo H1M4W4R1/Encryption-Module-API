@@ -15,7 +15,7 @@ namespace EncryptionModuleTester
 
 
             // Connect to device at specific port
-            var module = EncryptionModule.Connect("COM3");
+            var module = EncryptionModule.Connect("COM8");
 
             // Set password for VMPC
             module.SetPassword("test");
@@ -42,10 +42,6 @@ namespace EncryptionModuleTester
             // Stream chunk size
             module.SetStreamChunkSize(4);
             Console.WriteLine($"StreamChunkSize: {module.GetStreamChunkSize()}");
-
-            // Fast USB mode
-            module.SetFastUSBMode(true);
-            Console.WriteLine($"FastUSBMode: {module.GetFastUSBMode()}");
 
             //module.BeginStreamEncryption(data => { /**/ });
             /*while (true)
