@@ -35,9 +35,12 @@ Commands supported:
 - `0x05` - init encryption algorithm
 - `0x06` - encrypt in stream mode
 - `0x07` - encrypt sequence
+- `0x10` - get CRC of current encryption
 - `0x50` - dump encryption data
 - `0x51` - load encryption data
 - `0xF0` - list features (supported commands)
+- `0xF1` - get config value
+- `0xF2` - set config value
 
 ## How about dumping encryption data?
 Yes, you can dump VMPC algorithm values (after initialization). It is recommended way to encrypt large files on your PC's CPU instead on EMO. To do this you need to call `module.DumpEncryptionData()` method.
