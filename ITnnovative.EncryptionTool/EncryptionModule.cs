@@ -55,11 +55,11 @@ namespace ITnnovative.EncryptionTool.API
             
             // Create list to return
             var list = new List<byte>();
-            for (byte cmd = 0; cmd < 256; cmd++)
+            for (short cmd = 0; cmd < 256; cmd++)
             {
                 // Check if commands is supported and add it
-                if (IsCommandSupported(cmd))
-                    list.Add(cmd);
+                if (IsCommandSupported((byte) cmd))
+                    list.Add((byte) cmd);
             }
 
             // Return list of supported commands
@@ -432,6 +432,60 @@ namespace ITnnovative.EncryptionTool.API
             return arr;
         }
 
+        public EncryptionChecksum GetChecksum()
+        {
+            if (!_connected)
+                throw new HardwareException("Encryption Module is not connected!");
+            
+            if (!IsCommandSupported(Commands.GET_CHECKSUM))
+                throw new NotSupportedException("This command is not supported on this device.");
+
+            var arr = new byte[8];
+            
+            // Create listener for downloading data
+            var cOffset = 0;
+
+            void Listener(object sender, DataReceivedArgs args)
+            {
+                var len = args.Data.Length;
+                for (var q = 0; q < len; q++)
+                {
+                    arr[cOffset] = args.Data[q];
+                    cOffset++;
+                }
+            }
+
+            _com.DataReceived += Listener;
+            
+            // Send command to get CRC
+            _com.Write(new[] {Commands.GET_CHECKSUM, Commands.DUMMY}, 0, 2);
+            
+            // Wait until data is received
+            while (cOffset < 8)
+            {
+            }
+
+            // Remove listener
+            _com.DataReceived -= Listener;
+
+            // Calculate checksums to arrays
+            var inputCrc = new byte[4];
+            var outputCrc = new byte[4];
+
+            for (var crc0 = 0; crc0 < 4; crc0++)
+                inputCrc[crc0] = arr[3 - crc0];
+            
+            for (var crc0 = 0; crc0 < 4; crc0++)
+                outputCrc[crc0] = arr[7 - crc0];
+
+            // Convert checksums
+            var input = BitConverter.ToUInt32(inputCrc);
+            var output = BitConverter.ToUInt32(outputCrc);
+
+            // Return checksum
+            return EncryptionChecksum.Create(input, output);
+        }
+        
         /// <summary>
         /// Load encryption data
         /// </summary>
